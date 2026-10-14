@@ -109,6 +109,34 @@ python -m app.live_demo
 # or equivalently:
 python -m app.runner --live-demo
 ```
+#### Redacted live trace (Groq - openai/gpt-oss-20b) - evidence for review
+
+```text
+config OK: GROQ_API_KEY: set; model=openai/gpt-oss-20b; host=api.groq.com; timeout_s=30.0
+
+T1 user: Hello, I need help with a refund
+T1 agent: To help with your account, please reply with the email address on file.
+T1 state: verified=False
+
+T2 user: ava@example.com
+T2 agent: Please provide last 4 digits of card on file.
+
+T3 user: 4242
+T3 agent: Thanks — you're verified. How can I help?
+T3 state: verified=True customer=c_ava verified_note=present
+
+T4 user: I want a refund for transaction t_ok, amount 42.50
+T4 agent: Your refund of $42.50 has been processed. You'll see the amount back on your card in a few business days.
+T4 audit: tool_proposed get_transaction t_ok | tool_allowed get_transaction | tool_proposed issue_refund r_t_ok | policy_decision eligible | t_ok=refunded ($42.50)
+
+T5 user: Now refund transaction t_big for $80.00
+T5 agent: I'm escalating this request to a specialist who can help further. You'll receive a ticket ID h_0001 shortly.
+T5 audit: tool_proposed get_transaction t_big | tool_allowed | tool_proposed escalate_to_human | policy_decision amount-over-limit | h_0001 | t_big=settled (escalated)
+
+Full audit JSON shows tool_proposed / tool_allowed / policy_decision / escalation for both r_t_ok and h_0001
+```
+
+**Labelling:** Scripted evaluation (12/12) = deterministic runtime, no LLM. Live demo (T1-T5 above) = real Groq tool-calling through Python policy layer - assessed separately.
 
 It prints each user message, agent reply, verification state, the full
 audit trace as JSON, and final mock transaction statuses. It never prints
@@ -124,7 +152,7 @@ python -m pytest -q
 Expected output (latest local verification):
 
 ```text
-201 passed
+215 passed
 ```
 
 Coverage highlights: policy boundaries ($75 exactly allowed; exactly 30 days
@@ -199,7 +227,7 @@ asks a focused question or escalates instead of guessing:
 
 ## Submission checklist
 
-- [ ] `python -m pytest -q` → 201 passed (latest verified run)
+- [ ] `python -m pytest -q` → 215 passed (latest verified run)
 - [ ] `python -m eval.evaluate` → passed=12 failed=0
 - [ ] No `.env`, API key, or other secret included (`.env` is gitignored;
       `.env.example` holds placeholders only)
